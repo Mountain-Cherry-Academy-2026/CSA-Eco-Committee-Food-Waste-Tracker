@@ -116,39 +116,42 @@ public class MeasurePanel extends JPanel{
         });
         
         this.addAncestorListener(new AncestorListener() {
-            public void ancestorAdded(AncestorEvent event) {
-                isSettled = false;
-                stabilityCount = 0;
-                weightLabel.setForeground(Color.BLUE);
-                weightLabel.setText("0.00 g");
-                rawMonitorLabel.setText("Raw: 0");
-                
-                ConfigManager configManager = new ConfigManager();
-                portName = configManager.getAPortName();
-                tareValue = configManager.getTareValue();
-                scaleFactor = configManager.getScaleFactor();
-                
-                if (portName == null || portName.trim().length() == 0) {
-                    portName = "COM3";
-                }
-                
-                if (arduinoController != null) {
-                    arduinoController.stopMeasurement();
-                }
-                
-                arduinoController = new controller.MeasureController(MeasurePanel.this, portName, tareValue, scaleFactor);
-                arduinoThread = new Thread(arduinoController);
-                arduinoThread.start();
-            }
-            
-            public void ancestorRemoved(AncestorEvent event) {
-                if (arduinoController != null) {
-                    arduinoController.stopMeasurement();
-                }
-            }
-            
-            public void ancestorMoved(AncestorEvent event) {}
-        });
+    	    public void ancestorAdded(AncestorEvent event) {
+    	        isSettled = false;
+    	        stabilityCount = 0;
+    	        lastWeight = 0.0;
+    	        currentFinalWeight = 0.0;
+
+    	        weightLabel.setForeground(Color.BLUE);
+    	        weightLabel.setText("0.00 g");
+    	        rawMonitorLabel.setText("Raw: 0");
+
+    	        ConfigManager configManager = new ConfigManager();
+    	        portName = configManager.getAPortName();
+    	        tareValue = configManager.getTareValue();
+    	        scaleFactor = configManager.getScaleFactor();
+
+    	        if (portName == null || portName.trim().length() == 0) {
+    	            portName = "COM3";
+    	        }
+
+    	        if (arduinoController != null) {
+    	            arduinoController.stopMeasurement();
+    	        }
+
+    	        arduinoController = new controller.MeasureController(MeasurePanel.this, portName, tareValue, scaleFactor);
+    	        arduinoThread = new Thread(arduinoController);
+    	        arduinoThread.start();
+    	    }
+
+    	    public void ancestorRemoved(AncestorEvent event) {
+    	        if (arduinoController != null) {
+    	            arduinoController.stopMeasurement();
+    	        }
+    	    }
+
+    	    public void ancestorMoved(AncestorEvent event) {}
+    	});
 	}
 	
 	public void updateWeightLabel(double finalWeight, long finalRaw) {
