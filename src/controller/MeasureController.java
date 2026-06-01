@@ -7,22 +7,41 @@ import java.io.BufferedReader;
 import java.util.Date;
 import javax.swing.SwingUtilities;
 import window.MeasurePanel;
+import window.CalibratePanel;
 import model.WasteRecord;
 import dao.WasteRecordDAO;
 
 public class MeasureController implements Runnable {
 
-    private MeasurePanel panel;
-    private boolean isRunning = true;
+    private MeasurePanel measurePanel;
+    private CalibratePanel calibratePanel;
+    
+    private boolean isRunning;
     private SerialPort comPort;
     private WasteRecordDAO dao;
+    private String selectedPortName;
+    private long tareValue;
+    private double calibrationFactor;
+    private boolean isCalibrateMode;
 
-    private final long TARE_VALUE = 8388608;          
-    private final double CALIBRATION_FACTOR = -7050.0; 
-
-    public MeasureController(MeasurePanel panel) {
-        this.panel = panel;
+    public MeasureController(MeasurePanel panel, String portName, long tareValue, double calibrationFactor) {
+        this.measurePanel = panel;
+        this.selectedPortName = portName;
+        this.tareValue = tareValue;
+        this.calibrationFactor = calibrationFactor;
         this.dao = new WasteRecordDAO();
+        this.isRunning = true;
+        this.isCalibrateMode = false;
+    }
+
+    public MeasureController(CalibratePanel panel, String portName, long tareValue, double calibrationFactor) {
+        this.calibratePanel = panel;
+        this.selectedPortName = portName;
+        this.tareValue = tareValue;
+        this.calibrationFactor = calibrationFactor;
+        this.dao = new WasteRecordDAO();
+        this.isRunning = true;
+        this.isCalibrateMode = true;
     }
 
     public void stopMeasurement() {
@@ -33,10 +52,8 @@ public class MeasureController implements Runnable {
     }
 
     public void run() {
-        if (SerialPort.getCommPorts().length == 0) return;
-        
-        comPort = SerialPort.getCommPorts()[0]; 
-        comPort.setBaudRate(9600);
+        comPort = SerialPort.getCommPort(selectedPortName);
+        comPort.setBaudRate(19200);
 
         if (!comPort.openPort()) return;
 
@@ -54,21 +71,34 @@ public class MeasureController implements Runnable {
 
                 long rawData = Long.parseLong(rawStr);
 
-                double calculatedWeight = (rawData - TARE_VALUE) / CALIBRATION_FACTOR;
-                if (calculatedWeight < 0) calculatedWeight = 0.0;
-                
-                double roundedWeight = Math.round(calculatedWeight * 100) / 100.0;
-                final double finalWeight = roundedWeight;
+                if (isCalibrateMode) {
+                    final double rawDataDouble = (double) rawData;
+                    
+                    SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                            if (calibratePanel != null) {
+                                calibratePanel.updateRawLabel(rawDataDouble);
+                            }
+                        }
+                    });
+                } else {
+                    double calculatedWeight = (double)(rawData - tareValue) / calibrationFactor;
+                    if (calculatedWeight < 0) calculatedWeight = 0.0;
+                    
+                    double roundedWeight = Math.round(calculatedWeight * 100) / 100.0;
+                    final double finalWeight = roundedWeight;
 
-                WasteRecord record = new WasteRecord(finalWeight, new Date());
+                    WasteRecord record = new WasteRecord(finalWeight, new Date());
+                    dao.insertRecord(record);
 
-                dao.insertRecord(record);
-
-                SwingUtilities.invokeLater(new Runnable() {
-                    public void run() {
-                        panel.updateWeightLabel(finalWeight);
-                    }
-                });
+                    SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                            if (measurePanel != null) {
+                                measurePanel.updateWeightLabel(finalWeight);
+                            }
+                        }
+                    });
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();

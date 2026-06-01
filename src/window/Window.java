@@ -24,11 +24,12 @@ public class Window extends JFrame{
 		MainMenuPanel mainMenuPanel = new MainMenuPanel(this);
 		MeasurePanel measurePanel = new MeasurePanel(this);
 		ViewPanel viewPanel = new ViewPanel(this);
+		CalibratePanel calibratePanel = new CalibratePanel(this);
 		
 		mainContainer.add("MAIN_MENU", mainMenuPanel);
 		mainContainer.add("MEASURE", measurePanel);
 		mainContainer.add("VIEW", viewPanel);
-		
+		mainContainer.add("CALIBRATE", calibratePanel);
 		getContentPane().add(mainContainer);
 		cardLayout.show(mainContainer, "MAIN_MENU");
 		

@@ -1,25 +1,29 @@
 package window;
 
-import javax.swing.*;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-public class ViewPanel extends JPanel {
-    /**
-	 * 
-	 */
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+public class ScanPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 	private Window window;
 	
-	public ViewPanel (final Window window) {
+	public ScanPanel (final Window window) {
 		this.window = window;
         setLayout(new BorderLayout());
         
         Font defaultFont60 = new Font("Arial", Font.BOLD, 60);
         Font defaultFont30 = new Font("Arial", Font.BOLD, 30);
         
-        JLabel title = new JLabel("View", JLabel.CENTER);
+        JLabel title = new JLabel("Scan", JLabel.CENTER);
         title.setBorder(BorderFactory.createEmptyBorder(100, 0, 30, 0));
         title.setFont(defaultFont60);
         add(title, BorderLayout.NORTH);
@@ -37,7 +41,7 @@ public class ViewPanel extends JPanel {
 
         btnReturn.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                ViewPanel.this.window.changeScreen("MAIN_MENU");
+                ScanPanel.this.window.changeScreen("MAIN_MENU");
             }
         });	
 	}

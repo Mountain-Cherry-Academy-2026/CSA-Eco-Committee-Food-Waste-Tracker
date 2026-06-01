@@ -22,17 +22,20 @@ public class MainMenuPanel extends JPanel {
         title.setFont(defaultFont60);
         add(title, BorderLayout.NORTH);
 
-        JPanel menuPanel = new JPanel(new GridLayout(3, 1, 0, 15));
+        JPanel menuPanel = new JPanel(new GridLayout(4, 1, 0, 15));
         JButton btnMeasure = new JButton("Measure");
         JButton btnView = new JButton("View");
+        JButton btnCali = new JButton("Calibrate");
         JButton btnExit = new JButton("Exit");
         
         btnMeasure.setFont(defaultFont30);
         btnView.setFont(defaultFont30);
+        btnCali.setFont(defaultFont30);
         btnExit.setFont(defaultFont30);
         
         menuPanel.add(btnMeasure);
         menuPanel.add(btnView);
+        menuPanel.add(btnCali);
         menuPanel.add(btnExit);
 
         JPanel bottomContainer = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 80));
@@ -51,7 +54,13 @@ public class MainMenuPanel extends JPanel {
                 MainMenuPanel.this.window.changeScreen("VIEW");
             }
         });
-
+        
+        btnCali.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                MainMenuPanel.this.window.changeScreen("CALIBRATE");
+            }
+        });
+        
         btnExit.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 System.exit(0);
