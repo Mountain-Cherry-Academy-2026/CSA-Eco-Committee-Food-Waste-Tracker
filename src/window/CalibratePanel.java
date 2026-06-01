@@ -7,14 +7,14 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-
+import javax.swing.event.AncestorEvent;
+import javax.swing.event.AncestorListener;
 import util.ConfigManager;
 
 public class CalibratePanel extends JPanel {
@@ -41,58 +41,55 @@ public class CalibratePanel extends JPanel {
         Font labelFont = new Font("Arial", Font.PLAIN, 24);
         
         JLabel title = new JLabel("Calibrate", JLabel.CENTER);
-        title.setBorder(BorderFactory.createEmptyBorder(40, 0, 10, 0));
+        title.setBorder(BorderFactory.createEmptyBorder(60, 0, 20, 0));
         title.setFont(defaultFont60);
         add(title, BorderLayout.NORTH);
 
-        JPanel formPanel = new JPanel(new GridLayout(4, 2, 10, 20));
-        formPanel.setBorder(BorderFactory.createEmptyBorder(20, 150, 20, 150));
-        
-        JLabel lblPort = new JLabel("Serial Port Name:", JLabel.RIGHT);
+        JPanel centerPanel = new JPanel(new GridLayout(4, 2, 10, 15));
+        centerPanel.setBorder(BorderFactory.createEmptyBorder(20, 50, 20, 50));
+
+        JLabel lblPort = new JLabel("Port Name:", JLabel.RIGHT);
         lblPort.setFont(labelFont);
         tfPortName = new JTextField(configManager.getAPortName());
         tfPortName.setFont(labelFont);
-        
-        JLabel lblTare = new JLabel("Tare Value (Offset):", JLabel.RIGHT);
+
+        JLabel lblTare = new JLabel("Tare Value:", JLabel.RIGHT);
         lblTare.setFont(labelFont);
         tfTareValue = new JTextField(String.valueOf(configManager.getTareValue()));
         tfTareValue.setFont(labelFont);
-        
-        JLabel lblScale = new JLabel("Scale Factor (Calibration):", JLabel.RIGHT);
+
+        JLabel lblScale = new JLabel("Scale Factor:", JLabel.RIGHT);
         lblScale.setFont(labelFont);
         tfScaleFactor = new JTextField(String.valueOf(configManager.getScaleFactor()));
         tfScaleFactor.setFont(labelFont);
-        
-        JLabel lblRawTitle = new JLabel("Real-time Raw Data:", JLabel.RIGHT);
-        lblRawTitle.setFont(labelFont);
-        lblCurrentRawValue = new JLabel("Connecting...", JLabel.LEFT);
+
+        JLabel lblRaw = new JLabel("Current Raw Value:", JLabel.RIGHT);
+        lblRaw.setFont(labelFont);
+        lblCurrentRawValue = new JLabel("0", JLabel.LEFT);
         lblCurrentRawValue.setFont(labelFont);
         lblCurrentRawValue.setForeground(Color.RED);
-        
-        formPanel.add(lblPort);
-        formPanel.add(tfPortName);
-        formPanel.add(lblTare);
-        formPanel.add(tfTareValue);
-        formPanel.add(lblScale);
-        formPanel.add(tfScaleFactor);
-        formPanel.add(lblRawTitle);
-        formPanel.add(lblCurrentRawValue);
-        
-        add(formPanel, BorderLayout.CENTER);
 
-        JPanel menuPanel = new JPanel(new GridLayout(1, 2, 20, 0));
-        JButton btnSave = new JButton("Save Settings");
+        centerPanel.add(lblPort);
+        centerPanel.add(tfPortName);
+        centerPanel.add(lblTare);
+        centerPanel.add(tfTareValue);
+        centerPanel.add(lblScale);
+        centerPanel.add(tfScaleFactor);
+        centerPanel.add(lblRaw);
+        centerPanel.add(lblCurrentRawValue);
+
+        add(centerPanel, BorderLayout.CENTER);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 20));
+        JButton btnSave = new JButton("Save");
         JButton btnReturn = new JButton("Return");
-        
+
         btnSave.setFont(defaultFont30);
         btnReturn.setFont(defaultFont30);
-        
-        menuPanel.add(btnSave);
-        menuPanel.add(btnReturn);
-        
-        JPanel bottomContainer = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 50));
-        bottomContainer.add(menuPanel);
-        add(bottomContainer, BorderLayout.SOUTH);
+
+        buttonPanel.add(btnSave);
+        buttonPanel.add(btnReturn);
+        add(buttonPanel, BorderLayout.SOUTH);
 
         btnSave.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -101,8 +98,8 @@ public class CalibratePanel extends JPanel {
                     String tareStr = tfTareValue.getText().trim();
                     String scaleStr = tfScaleFactor.getText().trim();
                     
-                    if (port.length() == 0 || tareStr.length() == 0 || scaleStr.length() == 0) {
-                        JOptionPane.showMessageDialog(CalibratePanel.this.window, "Please fill in all fields.");
+                    if(port.length() == 0 || tareStr.length() == 0 || scaleStr.length() == 0) {
+                        JOptionPane.showMessageDialog(CalibratePanel.this.window, "All fields must be filled.");
                         return;
                     }
                     
@@ -110,7 +107,6 @@ public class CalibratePanel extends JPanel {
                     double scale = Double.parseDouble(scaleStr);
                     
                     configManager.setConfig(port, tare, scale);
-                    
                     JOptionPane.showMessageDialog(CalibratePanel.this.window, "Settings saved successfully!\nIf the port changed, please reopen this screen.");
                     
                 } catch (NumberFormatException ex) {
@@ -128,10 +124,23 @@ public class CalibratePanel extends JPanel {
             }
         });	
         
-        String activePort = configManager.getAPortName();
-        this.arduinoController = new controller.MeasureController(this, activePort, 0, 1.0);
-        this.arduinoThread = new Thread(this.arduinoController);
-        this.arduinoThread.start();
+        this.addAncestorListener(new AncestorListener() {
+            public void ancestorAdded(AncestorEvent event) {
+                if (arduinoController != null) {
+                    arduinoController.stopMeasurement();
+                }
+                String activePort = configManager.getAPortName();
+                arduinoController = new controller.MeasureController(CalibratePanel.this, activePort, 0, 1.0);
+                arduinoThread = new Thread(arduinoController);
+                arduinoThread.start();
+            }
+            public void ancestorRemoved(AncestorEvent event) {
+                if (arduinoController != null) {
+                    arduinoController.stopMeasurement();
+                }
+            }
+            public void ancestorMoved(AncestorEvent event) {}
+        });
 	}
 	
 	public void updateRawLabel(double rawValue) {

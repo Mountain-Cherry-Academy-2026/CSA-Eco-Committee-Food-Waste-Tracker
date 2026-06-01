@@ -1,6 +1,7 @@
 package controller;
 
-import com.fazecast.jSerialComm.SerialPort;
+import gnu.io.CommPortIdentifier;
+import gnu.io.SerialPort;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
@@ -14,7 +15,7 @@ public class MeasureController implements Runnable {
     private CalibratePanel calibratePanel;
     
     private boolean isRunning;
-    private SerialPort comPort;
+    private SerialPort serialPort;
     private String selectedPortName;
     private long tareValue;
     private double calibrationFactor;
@@ -40,67 +41,90 @@ public class MeasureController implements Runnable {
 
     public void stopMeasurement() {
         this.isRunning = false;
-        if (comPort != null && comPort.isOpen()) {
-            comPort.closePort();
+        if (serialPort != null) {
+            try {
+                serialPort.close();
+                serialPort = null;
+            } catch (Exception e) {
+            }
         }
     }
 
     public void run() {
-        comPort = SerialPort.getCommPort(selectedPortName);
-        comPort.setBaudRate(115200);
-
-        if (!comPort.openPort()) {
-            System.out.println("é∏îs: " + selectedPortName);
-            return;
-        } else {
-            System.out.println("ê¨å˜: " + selectedPortName);
-        }
-
-        InputStream in = comPort.getInputStream();
-        InputStreamReader isr = new InputStreamReader(in);
-        BufferedReader reader = new BufferedReader(isr);
+        InputStream in = null;
+        InputStreamReader isr = null;
+        BufferedReader reader = null;
         
         try {
+            CommPortIdentifier portId = CommPortIdentifier.getPortIdentifier(selectedPortName);
+            serialPort = (SerialPort) portId.open("ArduinoMeasureApp", 2000);
+            
+            serialPort.setSerialPortParams(115200, 
+                    SerialPort.DATABITS_8, 
+                    SerialPort.STOPBITS_1, 
+                    SerialPort.PARITY_NONE);
+
+            System.out.println("ê¨å˜: " + selectedPortName);
+
+            in = serialPort.getInputStream();
+            isr = new InputStreamReader(in);
+            reader = new BufferedReader(isr);
+            
             while (isRunning) {
-                String rawStr = reader.readLine();
-                if (rawStr == null) break;
-                
-                rawStr = rawStr.trim();
-                if (rawStr.length() == 0) continue;
-
-                long rawData = Long.parseLong(rawStr);
-
-                if (isCalibrateMode) {
-                    final double rawDataDouble = (double) rawData;
+                if (reader.ready()) {
+                    String rawStr = reader.readLine();
+                    if (rawStr == null) continue;
                     
-                    SwingUtilities.invokeLater(new Runnable() {
-                        public void run() {
-                            if (calibratePanel != null) {
-                                calibratePanel.updateRawLabel(rawDataDouble);
+                    rawStr = rawStr.trim();
+                    if (rawStr.length() == 0) continue;
+
+                    if (rawStr.indexOf("HX711") != -1 || rawStr.indexOf("not ready") != -1) {
+                        continue; 
+                    }
+
+                    long rawData = 0;
+                    try {
+                        rawData = Long.parseLong(rawStr);
+                    } catch (NumberFormatException nfe) {
+                        continue;
+                    }
+
+                    if (isCalibrateMode) {
+                        final long finalRaw = rawData;
+                        SwingUtilities.invokeLater(new Runnable() {
+                            public void run() {
+                                if (calibratePanel != null) {
+                                    calibratePanel.updateRawLabel((double) finalRaw);
+                                }
                             }
-                        }
-                    });
+                        });
+                    } else {
+                        double calculatedWeight = (double)(rawData - tareValue) / calibrationFactor;
+                        if (calculatedWeight < 0) calculatedWeight = 0.0;
+                        
+                        double roundedWeight = Math.round(calculatedWeight * 100) / 100.0;
+                        final double finalWeight = roundedWeight;
+                        final long finalRaw = rawData;
+                        
+                        SwingUtilities.invokeLater(new Runnable() {
+                            public void run() {
+                                if (measurePanel != null) {
+                                    measurePanel.updateWeightLabel(finalWeight, finalRaw);
+                                }
+                            }
+                        });
+                    }
                 } else {
-                    double calculatedWeight = (double)(rawData - tareValue) / calibrationFactor;
-                    if (calculatedWeight < 0) calculatedWeight = 0.0;
-                    
-                    double roundedWeight = Math.round(calculatedWeight * 100) / 100.0;
-                    final double finalWeight = roundedWeight;
-
-                    SwingUtilities.invokeLater(new Runnable() {
-                        public void run() {
-                            if (measurePanel != null) {
-                                measurePanel.updateWeightLabel(finalWeight);
-                            }
-                        }
-                    });
+                    try { Thread.sleep(10); } catch (Exception e) {}
                 }
             }
         } catch (Exception e) {
+            System.out.println("é∏îs: " + selectedPortName);
             e.printStackTrace();
         } finally {
-            try { reader.close(); } catch (Exception ex) {}
-            try { isr.close(); } catch (Exception ex) {}
+            try { if (reader != null) reader.close(); } catch (Exception ex) {}
+            try { if (isr != null) isr.close(); } catch (Exception ex) {}
+            try { if (in != null) in.close(); } catch (Exception ex) {}
             stopMeasurement();
         }
     }

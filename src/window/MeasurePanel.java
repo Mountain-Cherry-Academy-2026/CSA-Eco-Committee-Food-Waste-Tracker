@@ -1,15 +1,19 @@
 package window;
 
 import javax.swing.*;
+import javax.swing.event.AncestorEvent;
+import javax.swing.event.AncestorListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.DecimalFormat;
+import util.ConfigManager;
 
 public class MeasurePanel extends JPanel{
 	private static final long serialVersionUID = 1L;
 	private Window window;
     private JLabel weightLabel;
+    private JLabel rawMonitorLabel;
     private controller.MeasureController arduinoController;
     private Thread arduinoThread;
     
@@ -33,11 +37,21 @@ public class MeasurePanel extends JPanel{
         Font defaultFont60 = new Font("Arial", Font.BOLD, 60);
         Font defaultFont45 = new Font("Arial", Font.BOLD, 45);
         Font defaultFont30 = new Font("Arial", Font.BOLD, 30);
-        
+        Font defaultFont15 = new Font("Arial", Font.PLAIN, 15);
+
+        JPanel northPanel = new JPanel(new BorderLayout());
         JLabel title = new JLabel("Measure", JLabel.CENTER);
         title.setBorder(BorderFactory.createEmptyBorder(100, 0, 30, 0));
         title.setFont(defaultFont60);
-        add(title, BorderLayout.NORTH);
+
+        rawMonitorLabel = new JLabel("Raw: 0", JLabel.RIGHT);
+        rawMonitorLabel.setFont(defaultFont15);
+        rawMonitorLabel.setForeground(Color.GRAY);
+        rawMonitorLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 20));
+
+        northPanel.add(rawMonitorLabel, BorderLayout.NORTH);
+        northPanel.add(title, BorderLayout.CENTER);
+        add(northPanel, BorderLayout.NORTH);
 
         JPanel menuPanel = new JPanel(new GridLayout(3, 1, 0, 15));
         JButton btnSkip = new JButton("Skip");
@@ -101,18 +115,46 @@ public class MeasurePanel extends JPanel{
             }
         });
         
-        this.portName = "COM3";
-        this.tareValue = 258520;
-        this.scaleFactor = 213.0;
-        
-        this.arduinoController = new controller.MeasureController(this, this.portName, this.tareValue, this.scaleFactor);
-        this.arduinoThread = new Thread(this.arduinoController);
-        this.arduinoThread.start();
+        this.addAncestorListener(new AncestorListener() {
+            public void ancestorAdded(AncestorEvent event) {
+                isSettled = false;
+                stabilityCount = 0;
+                weightLabel.setForeground(Color.BLUE);
+                weightLabel.setText("0.00 g");
+                rawMonitorLabel.setText("Raw: 0");
+                
+                ConfigManager configManager = new ConfigManager();
+                portName = configManager.getAPortName();
+                tareValue = configManager.getTareValue();
+                scaleFactor = configManager.getScaleFactor();
+                
+                if (portName == null || portName.trim().length() == 0) {
+                    portName = "COM3";
+                }
+                
+                if (arduinoController != null) {
+                    arduinoController.stopMeasurement();
+                }
+                
+                arduinoController = new controller.MeasureController(MeasurePanel.this, portName, tareValue, scaleFactor);
+                arduinoThread = new Thread(arduinoController);
+                arduinoThread.start();
+            }
+            
+            public void ancestorRemoved(AncestorEvent event) {
+                if (arduinoController != null) {
+                    arduinoController.stopMeasurement();
+                }
+            }
+            
+            public void ancestorMoved(AncestorEvent event) {}
+        });
 	}
 	
-	public void updateWeightLabel(double finalWeight) {
+	public void updateWeightLabel(double finalWeight, long finalRaw) {
 	     DecimalFormat format = new DecimalFormat("#,##0.00");
 	     weightLabel.setText(format.format(finalWeight) + " g");
+	     rawMonitorLabel.setText("Raw: " + finalRaw);
 	     
 	     if (isSettled) {
 	         return;
