@@ -44,20 +44,20 @@ public class MainMenuPanel extends JPanel {
 
         btnMeasure.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                MainMenuPanel.this.window.changeScreen("MEASURE");
+                MainMenuPanel.this.window.changeScreen("MEASURE_PANEL");
             }
         });
 
         btnView.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 //JOptionPane.showMessageDialog(MainMenuPanel.this.window, "Preparing");
-                MainMenuPanel.this.window.changeScreen("VIEW");
+                MainMenuPanel.this.window.changeScreen("VIEW_PANEL");
             }
         });
         
         btnCali.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                MainMenuPanel.this.window.changeScreen("CALIBRATE");
+                MainMenuPanel.this.window.changeScreen("CALIBRATE_PANEL");
             }
         });
         

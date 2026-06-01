@@ -4,12 +4,9 @@ import com.fazecast.jSerialComm.SerialPort;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
-import java.util.Date;
 import javax.swing.SwingUtilities;
 import window.MeasurePanel;
 import window.CalibratePanel;
-import model.WasteRecord;
-import dao.WasteRecordDAO;
 
 public class MeasureController implements Runnable {
 
@@ -18,7 +15,6 @@ public class MeasureController implements Runnable {
     
     private boolean isRunning;
     private SerialPort comPort;
-    private WasteRecordDAO dao;
     private String selectedPortName;
     private long tareValue;
     private double calibrationFactor;
@@ -29,7 +25,6 @@ public class MeasureController implements Runnable {
         this.selectedPortName = portName;
         this.tareValue = tareValue;
         this.calibrationFactor = calibrationFactor;
-        this.dao = new WasteRecordDAO();
         this.isRunning = true;
         this.isCalibrateMode = false;
     }
@@ -39,7 +34,6 @@ public class MeasureController implements Runnable {
         this.selectedPortName = portName;
         this.tareValue = tareValue;
         this.calibrationFactor = calibrationFactor;
-        this.dao = new WasteRecordDAO();
         this.isRunning = true;
         this.isCalibrateMode = true;
     }
@@ -53,14 +47,19 @@ public class MeasureController implements Runnable {
 
     public void run() {
         comPort = SerialPort.getCommPort(selectedPortName);
-        comPort.setBaudRate(19200);
+        comPort.setBaudRate(115200);
 
-        if (!comPort.openPort()) return;
+        if (!comPort.openPort()) {
+            System.out.println("é∏îs: " + selectedPortName);
+            return;
+        } else {
+            System.out.println("ê¨å˜: " + selectedPortName);
+        }
 
         InputStream in = comPort.getInputStream();
         InputStreamReader isr = new InputStreamReader(in);
         BufferedReader reader = new BufferedReader(isr);
-
+        
         try {
             while (isRunning) {
                 String rawStr = reader.readLine();
@@ -88,9 +87,6 @@ public class MeasureController implements Runnable {
                     double roundedWeight = Math.round(calculatedWeight * 100) / 100.0;
                     final double finalWeight = roundedWeight;
 
-                    WasteRecord record = new WasteRecord(finalWeight, new Date());
-                    dao.insertRecord(record);
-
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
                             if (measurePanel != null) {
@@ -103,16 +99,8 @@ public class MeasureController implements Runnable {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            try {
-                reader.close();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-            try {
-                isr.close();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+            try { reader.close(); } catch (Exception ex) {}
+            try { isr.close(); } catch (Exception ex) {}
             stopMeasurement();
         }
     }

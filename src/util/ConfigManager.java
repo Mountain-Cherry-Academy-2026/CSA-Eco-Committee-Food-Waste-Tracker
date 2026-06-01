@@ -24,7 +24,7 @@ public class ConfigManager {
             } else {
                 props.setProperty("aPortName", "COM3");
                 props.setProperty("bPortName", "COM4");
-                props.setProperty("tareValue", "0");
+                props.setProperty("tareValue", "258520");
                 props.setProperty("scaleFactor", "213.0");
                 saveConfig();
             }

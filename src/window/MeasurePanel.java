@@ -7,9 +7,6 @@ import java.awt.event.ActionListener;
 import java.text.DecimalFormat;
 
 public class MeasurePanel extends JPanel{
-    /**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 	private Window window;
     private JLabel weightLabel;
@@ -17,8 +14,17 @@ public class MeasurePanel extends JPanel{
     private Thread arduinoThread;
     
     private String portName;
-    private long tareValue = 125000;
+    private long tareValue = 258520;
     private double scaleFactor = 213.0;
+    
+    private double lastWeight = 0.0;
+    private int stabilityCount = 0;
+    private boolean isSettled = false;
+    private double currentFinalWeight = 0.0;
+    
+    private final double THRESHOLD_OBJECT_ON = 5.0;
+    private final double THRESHOLD_STABILITY = 0.5;
+    private final int REQUIRED_STABILITY_COUNT = 10;
     
 	public MeasurePanel (final Window window) {
 		this.window = window;
@@ -34,8 +40,13 @@ public class MeasurePanel extends JPanel{
         add(title, BorderLayout.NORTH);
 
         JPanel menuPanel = new JPanel(new GridLayout(3, 1, 0, 15));
+        JButton btnSkip = new JButton("Skip");
         JButton btnReturn = new JButton("Return");
+        
+        btnSkip.setFont(defaultFont30);
         btnReturn.setFont(defaultFont30);
+        
+        menuPanel.add(btnSkip);
         menuPanel.add(btnReturn);
         
         JLabel instruction = new JLabel("Please place your plate on the scale.", JLabel.CENTER);
@@ -65,6 +76,22 @@ public class MeasurePanel extends JPanel{
         bottomContainer.add(menuPanel);
         add(bottomContainer, BorderLayout.SOUTH);
 
+        btnSkip.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                isSettled = true;
+                if (arduinoController != null) {
+                    arduinoController.stopMeasurement();
+                }
+                
+                ScanPanel scanPanel = (ScanPanel) MeasurePanel.this.window.getPanel("SCAN_PANEL");
+                if (scanPanel != null) {
+                    scanPanel.setMeasuredWeight(currentFinalWeight);
+                }
+                
+                MeasurePanel.this.window.changeScreen("SCAN_PANEL");
+            }
+        });
+
         btnReturn.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 if (arduinoController != null) {
@@ -74,18 +101,57 @@ public class MeasurePanel extends JPanel{
             }
         });
         
-        util.ConfigManager config = new util.ConfigManager();
-        portName = config.getAPortName();
-        tareValue = config.getTareValue();
-        scaleFactor = config.getScaleFactor();
+        this.portName = "COM3";
+        this.tareValue = 258520;
+        this.scaleFactor = 213.0;
         
-        this.arduinoController = new controller.MeasureController(this, portName, tareValue, scaleFactor);
-        arduinoThread = new Thread(this.arduinoController);
-        arduinoThread.start();
+        this.arduinoController = new controller.MeasureController(this, this.portName, this.tareValue, this.scaleFactor);
+        this.arduinoThread = new Thread(this.arduinoController);
+        this.arduinoThread.start();
 	}
 	
 	public void updateWeightLabel(double finalWeight) {
 	     DecimalFormat format = new DecimalFormat("#,##0.00");
 	     weightLabel.setText(format.format(finalWeight) + " g");
+	     
+	     if (isSettled) {
+	         return;
+	     }
+	     
+	     currentFinalWeight = finalWeight;
+	     
+	     if (finalWeight > THRESHOLD_OBJECT_ON) {
+	         double diff = Math.abs(finalWeight - lastWeight);
+	         if (diff <= THRESHOLD_STABILITY) {
+	             stabilityCount++;
+	         } else {
+	             stabilityCount = 0;
+	         }
+	         
+	         if (stabilityCount >= REQUIRED_STABILITY_COUNT) {
+	             isSettled = true;
+	             weightLabel.setForeground(Color.GREEN);
+	             
+	             if (arduinoController != null) {
+	                 arduinoController.stopMeasurement();
+	             }
+	             
+	             Timer timer = new Timer(1500, new ActionListener() {
+	                 public void actionPerformed(ActionEvent e) {
+	                     ScanPanel scanPanel = (ScanPanel) MeasurePanel.this.window.getPanel("SCAN_PANEL");
+	                     if (scanPanel != null) {
+	                         scanPanel.setMeasuredWeight(currentFinalWeight);
+	                     }
+	                     MeasurePanel.this.window.changeScreen("SCAN_PANEL");
+	                 }
+	             });
+	             timer.setRepeats(false);
+	             timer.start();
+	         }
+	     } else {
+	         stabilityCount = 0;
+	     }
+	     
+	     lastWeight = finalWeight;
 	}
 }
