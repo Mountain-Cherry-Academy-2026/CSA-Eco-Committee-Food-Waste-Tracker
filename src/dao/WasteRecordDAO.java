@@ -1,22 +1,18 @@
 package dao;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import model.WasteRecord;
+import model.StudentInfo;
+import util.ConfigManager;
+import util.DatabaseManager;
 
 public class WasteRecordDAO {
-    private String url = "jdbc:mysql://localhost:3306/food_waste_db";
-    private String user = "root";
-    private String password = "your_password";
+
+    private ConfigManager config = DatabaseManager.getConfig();
 
     public WasteRecordDAO() {
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
     }
 
     public boolean insertRecord(WasteRecord record) {
@@ -24,63 +20,99 @@ public class WasteRecordDAO {
         PreparedStatement pstmt = null;
         boolean isSuccess = false;
         
-        String sql = "INSERT INTO waste_records (weight_g, record_time) VALUES (?, ?)";
+        StringBuffer sb = new StringBuffer();
+        sb.append("INSERT INTO ").append(config.getHistoryTable());
+        sb.append(" (record_time, weight_g, tray_type) VALUES (?, ?, ?);");
 
         try {
-            conn = DriverManager.getConnection(url, user, password);
-            pstmt = conn.prepareStatement(sql);
+            conn = DatabaseManager.getHistoryConnection();
+            conn.setAutoCommit(false); 
             
-            pstmt.setDouble(1, record.getWeightG());
-            pstmt.setTimestamp(2, new java.sql.Timestamp(record.getRecordTime().getTime()));
+            pstmt = conn.prepareStatement(sb.toString());
+            
+            pstmt.setTimestamp(1, new java.sql.Timestamp(record.getRecordTime().getTime()));
+            pstmt.setDouble(2, record.getWeightG());
+            pstmt.setInt(3, record.getTrayType());
             
             int row = pstmt.executeUpdate();
             if (row > 0) {
+                conn.commit();
                 isSuccess = true;
+                System.out.println("insertRecord committed! (Order: Time -> Weight -> Tray)");
             }
         } catch (Exception e) {
             e.printStackTrace();
+            try { if (conn != null) conn.rollback(); } catch (Exception ex) {}
         } finally {
-            if (pstmt != null) {
-                try { pstmt.close(); } catch (Exception e) {}
-            }
-            if (conn != null) {
-                try { conn.close(); } catch (Exception e) {}
-            }
+            if (pstmt != null) { try { pstmt.close(); } catch (Exception e) {} }
+            if (conn != null) { try { conn.close(); } catch (Exception e) {} }
         }
         return isSuccess;
     }
 
-    public String getStudentNameByBarcode(String barcode) {
+    public StudentInfo getStudentInfoByBarcode(String barcode) {
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
+        
         String studentName = null;
+        int grade = 0;
 
-        String sql = "SELECT name FROM students WHERE student_id = ?";
+        StringBuffer sb = new StringBuffer();
+        sb.append("SELECT ENGNAME, KORNAME, SURNAME, GRADE FROM INFO WHERE ID = ?;");
 
         try {
-            conn = DriverManager.getConnection(url, user, password);
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setString(1, barcode);
+            conn = DatabaseManager.getStudentConnection();
+            pstmt = conn.prepareStatement(sb.toString());
+            
+            int studentId = Integer.parseInt(barcode.trim());
+            pstmt.setInt(1, studentId);
             
             rs = pstmt.executeQuery();
             if (rs.next()) {
-                studentName = rs.getString("name");
+                String engName = rs.getString("ENGNAME");
+                String korName = rs.getString("KORNAME");
+                String surName = rs.getString("SURNAME");
+                grade = rs.getInt("GRADE");
+                
+                StringBuffer namePart = new StringBuffer();
+                
+                if (engName != null && !engName.trim().equals("") && !engName.trim().equalsIgnoreCase("NULL")) {
+                    namePart.append(engName.trim());
+                }
+                
+                if (korName != null && !korName.trim().equals("") && !korName.trim().equalsIgnoreCase("NULL")) {
+                    if (namePart.length() > 0) {
+                        namePart.append(" ");
+                    }
+                    namePart.append(korName.trim());
+                }
+                
+                if (surName != null && !surName.trim().equals("") && !surName.trim().equalsIgnoreCase("NULL")) {
+                    if (namePart.length() > 0) {
+                        namePart.append(" ");
+                    }
+                    namePart.append(surName.trim());
+                }
+                
+                studentName = namePart.toString();
+                
+                if (studentName.trim().equals("")) {
+                    studentName = "Unknown Name";
+                }
+            } else {
+                studentName = "Non-registered";
             }
         } catch (Exception e) {
             e.printStackTrace();
+            studentName = "Error: " + e.getMessage();
         } finally {
-            if (rs != null) {
-                try { rs.close(); } catch (Exception e) {}
-            }
-            if (pstmt != null) {
-                try { pstmt.close(); } catch (Exception e) {}
-            }
-            if (conn != null) {
-                try { conn.close(); } catch (Exception e) {}
-            }
+            if (rs != null) { try { rs.close(); } catch (Exception e) {} }
+            if (pstmt != null) { try { pstmt.close(); } catch (Exception e) {} }
+            if (conn != null) { try { conn.close(); } catch (Exception e) {} }
         }
-        return studentName;
+        
+        return new StudentInfo(studentName, grade);
     }
 
     public boolean insertRecordWithStudent(WasteRecord record, String studentId) {
@@ -88,29 +120,36 @@ public class WasteRecordDAO {
         PreparedStatement pstmt = null;
         boolean isSuccess = false;
         
-        String sql = "INSERT INTO waste_records (weight_g, record_time, student_id) VALUES (?, ?, ?)";
+        StringBuffer sb = new StringBuffer();
+        sb.append("INSERT INTO ").append(config.getHistoryTable());
+        sb.append(" (record_time, weight_g, tray_type, student_id, grade) VALUES (?, ?, ?, ?, ?);");
 
         try {
-            conn = DriverManager.getConnection(url, user, password);
-            pstmt = conn.prepareStatement(sql);
+            conn = DatabaseManager.getHistoryConnection();
+            conn.setAutoCommit(false); 
             
-            pstmt.setDouble(1, record.getWeightG());
-            pstmt.setTimestamp(2, new java.sql.Timestamp(record.getRecordTime().getTime()));
-            pstmt.setString(3, studentId);
+            pstmt = conn.prepareStatement(sb.toString());
+            
+            pstmt.setTimestamp(1, new java.sql.Timestamp(record.getRecordTime().getTime()));
+            pstmt.setDouble(2, record.getWeightG());
+            pstmt.setInt(3, record.getTrayType());
+            
+            int sId = Integer.parseInt(studentId.trim());
+            pstmt.setInt(4, sId);
+            pstmt.setInt(5, record.getGrade());
             
             int row = pstmt.executeUpdate();
             if (row > 0) {
+                conn.commit();
                 isSuccess = true;
+                System.out.println("insertRecordWithStudent committed!");
             }
         } catch (Exception e) {
             e.printStackTrace();
+            try { if (conn != null) conn.rollback(); } catch (Exception ex) {}
         } finally {
-            if (pstmt != null) {
-                try { pstmt.close(); } catch (Exception e) {}
-            }
-            if (conn != null) {
-                try { conn.close(); } catch (Exception e) {}
-            }
+            if (pstmt != null) { try { pstmt.close(); } catch (Exception e) {} }
+            if (conn != null) { try { conn.close(); } catch (Exception e) {} }
         }
         return isSuccess;
     }

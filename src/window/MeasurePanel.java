@@ -28,7 +28,7 @@ public class MeasurePanel extends JPanel{
     
     private final double THRESHOLD_OBJECT_ON = 5.0;
     private final double THRESHOLD_STABILITY = 0.5;
-    private final int REQUIRED_STABILITY_COUNT = 10;
+    private final int REQUIRED_STABILITY_COUNT = 15;
     
 	public MeasurePanel (final Window window) {
 		this.window = window;
@@ -97,12 +97,12 @@ public class MeasurePanel extends JPanel{
                     arduinoController.stopMeasurement();
                 }
                 
-                ScanPanel scanPanel = (ScanPanel) MeasurePanel.this.window.getPanel("SCAN_PANEL");
-                if (scanPanel != null) {
-                    scanPanel.setMeasuredWeight(currentFinalWeight);
+                SelectPanel selectPanel = (SelectPanel) MeasurePanel.this.window.getPanel("SELECT_PANEL");
+                if (selectPanel != null) {
+                    selectPanel.setMeasuredWeight(currentFinalWeight);
                 }
                 
-                MeasurePanel.this.window.changeScreen("SCAN_PANEL");
+                MeasurePanel.this.window.changeScreen("SELECT_PANEL");
             }
         });
 
@@ -183,11 +183,11 @@ public class MeasurePanel extends JPanel{
 	             
 	             Timer timer = new Timer(1500, new ActionListener() {
 	                 public void actionPerformed(ActionEvent e) {
-	                     ScanPanel scanPanel = (ScanPanel) MeasurePanel.this.window.getPanel("SCAN_PANEL");
-	                     if (scanPanel != null) {
-	                         scanPanel.setMeasuredWeight(currentFinalWeight);
+	                     SelectPanel selectPanel = (SelectPanel) MeasurePanel.this.window.getPanel("SELECT_PANEL");
+	                     if (selectPanel != null) {
+	                         selectPanel.setMeasuredWeight(currentFinalWeight);
 	                     }
-	                     MeasurePanel.this.window.changeScreen("SCAN_PANEL");
+	                     MeasurePanel.this.window.changeScreen("SELECT_PANEL");
 	                 }
 	             });
 	             timer.setRepeats(false);

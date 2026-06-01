@@ -4,7 +4,7 @@ import window.*;
 
 public class MainApplication {
 	public static void main(String args[]) {
-		//init
+		util.DatabaseManager.initDatabase();
 		Window firstWindow = new Window();
 		firstWindow.mainFrame();
 		

@@ -24,18 +24,21 @@ public class Window extends JFrame{
 		
 		MainMenuPanel mainMenuPanel = new MainMenuPanel(this);
 		MeasurePanel measurePanel = new MeasurePanel(this);
+		SelectPanel selectPanel = new SelectPanel(this);
 		ScanPanel scanPanel = new ScanPanel(this);
 		ViewPanel viewPanel = new ViewPanel(this);
 		CalibratePanel calibratePanel = new CalibratePanel(this);
 		
 		panels.put("MAIN_MENU", mainMenuPanel);
 		panels.put("MEASURE_PANEL", measurePanel);
+		panels.put("SELECT_PANEL", selectPanel);
 		panels.put("SCAN_PANEL", scanPanel);
 		panels.put("VIEW_PANEL", viewPanel);
 		panels.put("CALIBRATE_PANEL", calibratePanel);
 		
 		mainContainer.add("MAIN_MENU", mainMenuPanel);
 		mainContainer.add("MEASURE_PANEL", measurePanel);
+		mainContainer.add("SELECT_PANEL", selectPanel);
 		mainContainer.add("SCAN_PANEL", scanPanel);
 		mainContainer.add("VIEW_PANEL", viewPanel);
 		mainContainer.add("CALIBRATE_PANEL", calibratePanel);

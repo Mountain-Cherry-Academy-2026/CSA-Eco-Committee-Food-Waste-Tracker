@@ -1,26 +1,16 @@
 package window;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.awt.GridLayout;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Date;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
+import javax.swing.*;
 import javax.swing.event.AncestorEvent;
 import javax.swing.event.AncestorListener;
 
 import dao.WasteRecordDAO;
 import model.WasteRecord;
+import model.StudentInfo;
 
 public class ScanPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
@@ -32,7 +22,9 @@ public class ScanPanel extends JPanel {
 	private Timer transitionTimer;
 	private WasteRecordDAO dao;
 	
-	private double measuredWeight = 0.0;
+	private double currentFinalWeight = 0.0;
+	private int currentTrayType = 0;
+	private int currentGrade = 0;
 	
 	public ScanPanel (final Window window) {
 		this.window = window;
@@ -83,23 +75,37 @@ public class ScanPanel extends JPanel {
                     
                     dao = new WasteRecordDAO();
                     
-                    String studentName = dao.getStudentNameByBarcode(barcodeValue);
+                    StudentInfo info = dao.getStudentInfoByBarcode(barcodeValue);
+                    String studentName = info.getName();
+                    currentGrade = info.getGrade();
                     
                     if (studentName == null || studentName.length() == 0) {
                         studentName = "Unknown User";
                     }
                     
-                    WasteRecord record = new WasteRecord(measuredWeight, new Date());
-                    dao.insertRecordWithStudent(record, barcodeValue);
+                    WasteRecord record = new WasteRecord();
+                    record.setRecordTime(new java.util.Date());
+                    record.setWeightG(currentFinalWeight);      
+                    record.setTrayType(currentTrayType);        
+                    record.setGrade(currentGrade);   
+                    
+                    if (studentName.equals("Non-registered") || studentName.startsWith("Error")) {
+                        dao.insertRecord(record);
+                    } else {
+                        dao.insertRecordWithStudent(record, barcodeValue);
+                    }
                     
                     instructionLabel.setText("Success!");
                     instructionLabel.setForeground(Color.GREEN);
                     
-                    resultLabel.setText("ID: " + barcodeValue + " / Name: " + studentName + " / Saved: " + measuredWeight + "g");
+                    resultLabel.setText("ID: " + barcodeValue + " / Name: " + studentName + " / Grade: " + currentGrade + " / Tray: " + currentTrayType + " / Saved: " + currentFinalWeight + "g");
                     
                     transitionTimer = new Timer(2000, new ActionListener() {
                         public void actionPerformed(ActionEvent ex) {
                             resetPanel();
+                            currentFinalWeight = 0.0;
+                            currentTrayType = 0;
+                            currentGrade = 0;
                             ScanPanel.this.window.changeScreen("MEASURE_PANEL");
                         }
                     });
@@ -112,6 +118,9 @@ public class ScanPanel extends JPanel {
         btnReturn.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 resetPanel();
+                currentFinalWeight = 0.0;
+                currentTrayType = 0;
+                currentGrade = 0;
                 ScanPanel.this.window.changeScreen("MAIN_MENU");
             }
         });	
@@ -130,7 +139,15 @@ public class ScanPanel extends JPanel {
 	}
 	
 	public void setMeasuredWeight(double weight) {
-	    this.measuredWeight = weight;
+	    this.currentFinalWeight = weight;
+	}
+
+	public void setTrayType(int trayType) {
+	    this.currentTrayType = trayType;
+	}
+
+	public void setCurrentGrade(int grade) {
+	    this.currentGrade = grade;
 	}
 	
 	private void resetPanel() {
@@ -142,6 +159,5 @@ public class ScanPanel extends JPanel {
 	    instructionLabel.setText("Please scan the barcode on your student ID.");
 	    instructionLabel.setForeground(Color.BLACK);
 	    resultLabel.setText("");
-	    measuredWeight = 0.0;
 	}
 }
