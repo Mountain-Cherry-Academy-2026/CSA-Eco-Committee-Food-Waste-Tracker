@@ -1,33 +1,29 @@
 package window;
 
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.Date;
+import java.awt.event.*;
 import javax.swing.*;
-import javax.swing.event.AncestorEvent;
-import javax.swing.event.AncestorListener;
+import javax.swing.event.*;
 
 import dao.WasteRecordDAO;
 import model.WasteRecord;
 import model.StudentInfo;
 
 public class ScanPanel extends JPanel {
-	private static final long serialVersionUID = 1L;
-	private Window window;
-	
-	private JLabel instructionLabel;
-	private JLabel resultLabel;
-	private JTextField barcodeHiddenField;
-	private Timer transitionTimer;
-	private WasteRecordDAO dao;
-	
-	private double currentFinalWeight = 0.0;
-	private int currentTrayType = 0;
-	private int currentGrade = 0;
-	
-	public ScanPanel (final Window window) {
-		this.window = window;
+    private Window window;
+    
+    private JLabel instructionLabel;
+    private JLabel resultLabel;
+    private JTextField barcodeHiddenField;
+    private Timer transitionTimer;
+    private WasteRecordDAO dao;
+    
+    private double currentFinalWeight = 0.0;
+    private int currentTrayType = 0;
+    private int currentGrade = 0;
+    
+    public ScanPanel(Window window) {
+        this.window = window;
         setLayout(new BorderLayout());
         
         Font defaultFont60 = new Font("Arial", Font.BOLD, 60);
@@ -67,6 +63,8 @@ public class ScanPanel extends JPanel {
         bottomContainer.add(menuPanel);
         add(bottomContainer, BorderLayout.SOUTH);
 
+        final ScanPanel self = this;
+
         barcodeHiddenField.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 String barcodeValue = barcodeHiddenField.getText().trim();
@@ -77,7 +75,7 @@ public class ScanPanel extends JPanel {
                     
                     StudentInfo info = dao.getStudentInfoByBarcode(barcodeValue);
                     String studentName = info.getName();
-                    currentGrade = info.getGrade();
+                    self.currentGrade = info.getGrade();
                     
                     if (studentName == null || studentName.length() == 0) {
                         studentName = "Unknown User";
@@ -85,9 +83,9 @@ public class ScanPanel extends JPanel {
                     
                     WasteRecord record = new WasteRecord();
                     record.setRecordTime(new java.util.Date());
-                    record.setWeightG(currentFinalWeight);      
-                    record.setTrayType(currentTrayType);        
-                    record.setGrade(currentGrade);   
+                    record.setWeightG(self.currentFinalWeight);      
+                    record.setTrayType(self.currentTrayType);        
+                    record.setGrade(self.currentGrade);   
                     
                     if (studentName.equals("Non-registered") || studentName.startsWith("Error")) {
                         dao.insertRecord(record);
@@ -98,15 +96,15 @@ public class ScanPanel extends JPanel {
                     instructionLabel.setText("Success!");
                     instructionLabel.setForeground(Color.GREEN);
                     
-                    resultLabel.setText("ID: " + barcodeValue + " / Name: " + studentName + " / Grade: " + currentGrade + " / Tray: " + currentTrayType + " / Saved: " + currentFinalWeight + "g");
+                    resultLabel.setText("ID: " + barcodeValue + " / Name: " + studentName + " / Grade: " + self.currentGrade + " / Tray: " + self.currentTrayType + " / Saved: " + self.currentFinalWeight + "g");
                     
                     transitionTimer = new Timer(2000, new ActionListener() {
                         public void actionPerformed(ActionEvent ex) {
                             resetPanel();
-                            currentFinalWeight = 0.0;
-                            currentTrayType = 0;
-                            currentGrade = 0;
-                            ScanPanel.this.window.changeScreen("MEASURE_PANEL");
+                            self.currentFinalWeight = 0.0;
+                            self.currentTrayType = 0;
+                            self.currentGrade = 0;
+                            self.window.changeScreen("MEASURE_PANEL");
                         }
                     });
                     transitionTimer.setRepeats(false);
@@ -118,10 +116,10 @@ public class ScanPanel extends JPanel {
         btnReturn.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 resetPanel();
-                currentFinalWeight = 0.0;
-                currentTrayType = 0;
-                currentGrade = 0;
-                ScanPanel.this.window.changeScreen("MAIN_MENU");
+                self.currentFinalWeight = 0.0;
+                self.currentTrayType = 0;
+                self.currentGrade = 0;
+                self.window.changeScreen("MAIN_MENU");
             }
         });	
         
@@ -136,28 +134,28 @@ public class ScanPanel extends JPanel {
             public void ancestorRemoved(AncestorEvent event) {}
             public void ancestorMoved(AncestorEvent event) {}
         });
-	}
-	
-	public void setMeasuredWeight(double weight) {
-	    this.currentFinalWeight = weight;
-	}
+    }
+    
+    public void setMeasuredWeight(double weight) {
+        this.currentFinalWeight = weight;
+    }
 
-	public void setTrayType(int trayType) {
-	    this.currentTrayType = trayType;
-	}
+    public void setTrayType(int trayType) {
+        this.currentTrayType = trayType;
+    }
 
-	public void setCurrentGrade(int grade) {
-	    this.currentGrade = grade;
-	}
-	
-	private void resetPanel() {
-	    if (transitionTimer != null && transitionTimer.isRunning()) {
-	        transitionTimer.stop();
-	    }
-	    barcodeHiddenField.setText("");
-	    barcodeHiddenField.setEnabled(true);
-	    instructionLabel.setText("Please scan the barcode on your student ID.");
-	    instructionLabel.setForeground(Color.BLACK);
-	    resultLabel.setText("");
-	}
+    public void setCurrentGrade(int grade) {
+        this.currentGrade = grade;
+    }
+    
+    private void resetPanel() {
+        if (transitionTimer != null && transitionTimer.isRunning()) {
+            transitionTimer.stop();
+        }
+        barcodeHiddenField.setText("");
+        barcodeHiddenField.setEnabled(true);
+        instructionLabel.setText("Please scan the barcode on your student ID.");
+        instructionLabel.setForeground(Color.BLACK);
+        resultLabel.setText("");
+    }
 }
