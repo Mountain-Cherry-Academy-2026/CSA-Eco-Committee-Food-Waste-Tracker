@@ -1,37 +1,28 @@
 package window;
 
-import java.awt.BorderLayout;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
 import java.util.Vector;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
+import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.event.AncestorEvent;
-import javax.swing.event.AncestorListener;
+import javax.swing.event.*;
 
 import util.ConfigManager;
 import util.DatabaseManager;
 
 public class ViewPanel extends JPanel {
     private static final long serialVersionUID = 1L;
+    
     private Window window;
     private JTable table;
     private DefaultTableModel tableModel;
-    private ConfigManager config = DatabaseManager.getConfig();
+    private ConfigManager config;
 
     public ViewPanel(final Window window) {
         this.window = window;
+        config = DatabaseManager.getConfig();
+        
         setLayout(new BorderLayout());
 
         Font defaultFont60 = new Font("Arial", Font.BOLD, 60);
